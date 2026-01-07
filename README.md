@@ -60,6 +60,20 @@ To make this change permanent, add the `export` line to your shell's startup fil
 
 3.  Save the file and restart your shell, or run `source ~/.bashrc` (or `source ~/.zshrc`) to apply the changes.
 
+## How It Works
+
+`safegit` intercepts `git` commands by replacing the original `git` executable. The setup assumes the following mechanism:
+
+1.  **Renaming the original `git`**: The system's original `git` executable (e.g., at `/usr/bin/git`) is renamed to `sudogit`.
+2.  **Installing `safegit`**: The compiled `safegit` executable is placed where the original `git` was, effectively taking its place.
+3.  **Execution Flow**: When you run a `git` command, you are actually invoking `safegit`. It processes the command, applies the security policies, and then executes the original `git` (now called `sudogit`) with the validated or modified arguments.
+
+```
+User's `git` command -> `safegit` executable -> `sudogit` (the original `git`)
+```
+
+This setup allows `safegit` to act as a transparent security guard without altering user workflows.
+
 ## Command Policies
 
 `safegit` enforces the following rules on `git` commands:
