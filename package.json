@@ -1,0 +1,13 @@
+{
+  "name": "safegit-project",
+  "version": "1.0.0",
+  "scripts": {
+    "compile:safegit": "bun build src/safegit.ts --compile --production --outfile=/home/yusham/.bun/bin/git"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+
+  }
+}
