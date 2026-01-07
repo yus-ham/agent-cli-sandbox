@@ -24,6 +24,42 @@ safegit add .
 safegit commit -m "My safe commit"
 ```
 
+### Replacing the Default `git` Command
+
+To use `safegit` transparently as your default `git` command, you can prepend the directory containing the compiled `safegit` executable to your system's `PATH` environment variable.
+
+The compilation script places the executable at `/home/yusham/.bun/bin/git`. Since the executable is named `git`, your shell will find and use it before the system's default Git if its directory comes first in the `PATH`.
+
+#### For the Current Session
+
+To try it out in your current terminal session, run the following command:
+
+```sh
+export PATH="/home/yusham/.bun/bin:$PATH"
+```
+
+After running this, any `git` command you type will automatically be processed by `safegit`.
+
+#### Making it Permanent
+
+To make this change permanent, add the `export` line to your shell's startup file (e.g., `~/.bashrc`, `~/.zshrc`, or `~/.profile`).
+
+1.  Open your shell's configuration file:
+    ```sh
+    # For Bash users
+    nano ~/.bashrc
+
+    # For Zsh users
+    nano ~/.zshrc
+    ```
+
+2.  Add the following line to the end of the file:
+    ```sh
+    export PATH="/home/yusham/.bun/bin:$PATH"
+    ```
+
+3.  Save the file and restart your shell, or run `source ~/.bashrc` (or `source ~/.zshrc`) to apply the changes.
+
 ## Command Policies
 
 `safegit` enforces the following rules on `git` commands:
