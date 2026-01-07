@@ -8,18 +8,13 @@
 import process from 'node:process';
 import { spawn } from 'bun';
 
-
-
 const LONG_RUN_REPORT_THRESHOLD_MS = 60 * 1000;
 const ENABLE_DEBUG_LOGS = process.env.RUNNER_DEBUG === '1';
-
 const GIT_BIN = '/usr/bin/sudogit';
-
-
 
 type RunnerExecutionContext = {
   commandArgs: string[];
-  workspaceDir: string;
+  originalCwd: string;
   targetCwd?: string; // Added to support -C <path>
 };
 
@@ -31,14 +26,12 @@ type RunnerExecutionContext = {
     process.exit(1);
   }
 
-  const workspaceDir = process.cwd();
+  const originalCwd = process.cwd();
   const context: RunnerExecutionContext = {
     commandArgs,
-    workspaceDir,
+    originalCwd,
     targetCwd,
   };
-
-
 
   await runCommand(context);
 })().catch((error) => {
@@ -51,17 +44,20 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
   const commandArgs: string[] = [];
   let parsingOptions = true;
   let targetCwd: string | undefined;
+  let i = 0;
 
-  for (let i = 0; i < argv.length; i++) {
+  while (i < argv.length) {
     const token = argv[i];
 
     if (!parsingOptions) {
       commandArgs.push(token);
+      i++;
       continue;
     }
 
     if (token === '--') {
       parsingOptions = false;
+      i++;
       continue;
     }
 
@@ -79,38 +75,41 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
     if (token === '-C' || token === '--directory') {
       if (i + 1 < argv.length) {
         targetCwd = argv[i + 1];
-        i++; // Skip the next argument as it's the path
+        i += 2; // Consume both -C and its value
       } else {
         console.error('[runner] Option -C or --directory requires a path.');
         process.exit(1);
       }
-      continue; // Do not add -C or its path to commandArgs
+      continue;
     }
 
     if (token.startsWith('-C')) { // Handle -C/path/to/dir
       targetCwd = token.substring(2);
-      continue; // Do not add -C/path/to/dir to commandArgs
+      i++; // Consume the -C/path/to/dir token
+      continue;
     }
 
     // Handle --cwd or --cwd=<path> option
     if (token === '--cwd') {
       if (i + 1 < argv.length) {
         targetCwd = argv[i + 1];
-        i++; // Skip the next argument as it's the path
+        i += 2; // Consume both --cwd and its value
       } else {
         console.error('[runner] Option --cwd requires a path.');
         process.exit(1);
       }
-      continue; // Do not add --cwd or its path to commandArgs
+      continue;
     }
 
     if (token.startsWith('--cwd=')) { // Handle --cwd=/path/to/dir
       targetCwd = token.substring('--cwd='.length);
-      continue; // Do not add --cwd=/path/to/dir to commandArgs
+      i++; // Consume the --cwd=/path/to/dir token
+      continue;
     }
 
-    parsingOptions = false;
+    parsingOptions = false; // Once a non-option argument is found, stop parsing options
     commandArgs.push(token);
+    i++;
   }
 
   return { commandArgs, targetCwd };
@@ -120,13 +119,13 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
 
 // Kicks off the requested command with logging, timeouts, and monitoring.
 async function runCommand(context: RunnerExecutionContext): Promise<void> {
-  const { command, args, env } = buildExecutionParams(context.commandArgs);
+  const { command, args, env } = buildExecutionParams(context);
   const commandLabel = formatDisplayCommand(context.commandArgs);
 
   const startTime = Date.now();
 
   const child = spawn([command, ...args], {
-    cwd: context.targetCwd || context.workspaceDir,
+    cwd: context.targetCwd || context.originalCwd,
     env,
     stdio: ['pipe', 'pipe', 'pipe'], // Capture stdout and stderr
   });
@@ -165,145 +164,152 @@ function isEnvAssignment(token: string): boolean {
   return token.includes('=') && !token.startsWith('-');
 }
 
-function buildExecutionParams(commandArgs: string[]): { command: string; args: string[]; env: NodeJS.ProcessEnv } {
-
-    const env = { ...process.env };
+function buildExecutionParams(context: RunnerExecutionContext): { command: string; args: string[]; env: NodeJS.ProcessEnv } {
+  const env = { ...process.env };
     const processedArgs: string[] = [];
   
     let commandStarted = false;
   
-    for (const token of commandArgs) {
-      if (!commandStarted && isEnvAssignment(token)) {
-        const [key, ...rest] = token.split('=');
-        if (key) {
-          env[key] = rest.join('=');
-        }
-        continue;
-      }
-      commandStarted = true;
-      processedArgs.push(token);
-    }
-  
-    // If the first argument is 'git', remove it to normalize the command for subsequent checks.
-    // This allows 'safegit git status' to be treated like 'safegit status'.
-    if (processedArgs.length > 0 && processedArgs[0] === 'git') {
-      processedArgs.shift();
-    }
-  
-    if (processedArgs.length === 0 || !processedArgs[0]) {
-      printUsage('Missing command to execute.');
-      process.exit(1);
-    }
-  
-    let [subcommand, ...restArgs] = processedArgs; // Renamed 'command' to 'subcommand'
-    let finalArgs: string[] = [];
-
-    switch (subcommand) {
-      case 'status':
-        finalArgs = ['status', ...restArgs];
-        break;
-      case 'config':
-        finalArgs = ['config', ...restArgs];
-        break;
-      case 'commit': {
-        const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
-        finalArgs = ['commit', '--no-edit', ...filteredRestArgs];
-        break;
-      }
-      case 'add':
-        finalArgs = ['add', ...restArgs];
-        break;
-      case 'remote':
-        finalArgs = ['remote', ...restArgs];
-        break;
-      case 'pull': {
-        const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
-        finalArgs = ['pull', '--no-edit', ...filteredRestArgs];
-        break;
-      }
-      case 'branch':
-        if (restArgs.includes('-d') || restArgs.includes('--delete') || restArgs.includes('-D')) {
-          console.error("git branch -d/-D is not allowed.");
-          process.exit(1);
-        }
-        finalArgs = ['branch', ...restArgs];
-        break;
-      case 'merge': {
-        const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
-        finalArgs = ['merge', '--no-edit', ...filteredRestArgs];
-        break;
-      }
-      case 'checkout': {
-        const isForce = restArgs.includes('-f') || restArgs.includes('--force');
-        const isFileOperation = restArgs.includes('--');
-
-        if (isFileOperation) {
-          if (isForce) {
-            // Allow 'checkout -f -- <file>', but filter out the force flag
-            const filteredArgs = restArgs.filter(arg => arg !== '-f' && arg !== '--force');
-            finalArgs = ['checkout', ...filteredArgs];
-          } else {
-            // Disallow 'checkout -- <file>' without force
-            console.error("git checkout -- <file> is not allowed.");
-            process.exit(1);
+      for (const token of context.commandArgs) {
+        if (!commandStarted && isEnvAssignment(token)) {
+          const [key, ...rest] = token.split('=');
+          if (key) {
+            env[key] = rest.join('=');
           }
+          continue;
+        }
+        commandStarted = true;
+        processedArgs.push(token);
+      }
+    
+      // If the first argument is 'git', remove it to normalize the command for subsequent checks.
+      // This allows 'safegit git status' to be treated like 'safegit status'.
+      if (processedArgs.length > 0 && processedArgs[0] === 'git') {
+        processedArgs.shift();
+      }
+    
+      if (processedArgs.length === 0 || !processedArgs[0]) {
+        printUsage('Missing command to execute.');
+        process.exit(1);
+      }
+    
+      let [subcommand, ...restArgs] = processedArgs;
+      let finalArgs: string[] = [];
+    
+      // Inject --git-dir and --work-tree if targetCwd is specified
+      if (context.targetCwd) {
+        // Note: Assuming .git is inside targetCwd, which is standard for a working tree.
+        // If a more complex setup is needed, this logic would need to be enhanced.
+        finalArgs.push(`--git-dir=${context.targetCwd}/.git`);
+        finalArgs.push(`--work-tree=${context.targetCwd}`);
+      }
+    
+  switch (subcommand) {
+    case 'status':
+      finalArgs = ['status', ...restArgs];
+      break;
+    case 'config':
+      finalArgs = ['config', ...restArgs];
+      break;
+    case 'commit': {
+      const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
+      finalArgs = ['commit', '--no-edit', ...filteredRestArgs];
+      break;
+    }
+    case 'add':
+      finalArgs = ['add', ...restArgs];
+      break;
+    case 'remote':
+      finalArgs = ['remote', ...restArgs];
+      break;
+    case 'pull': {
+      const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
+      finalArgs = ['pull', '--no-edit', ...filteredRestArgs];
+      break;
+    }
+    case 'branch':
+      if (restArgs.includes('-d') || restArgs.includes('--delete') || restArgs.includes('-D')) {
+        console.error("git branch -d/-D is not allowed.");
+        process.exit(1);
+      }
+      finalArgs = ['branch', ...restArgs];
+      break;
+    case 'merge': {
+      const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
+      finalArgs = ['merge', '--no-edit', ...filteredRestArgs];
+      break;
+    }
+    case 'checkout': {
+      const isForce = restArgs.includes('-f') || restArgs.includes('--force');
+      const isFileOperation = restArgs.includes('--');
+
+      if (isFileOperation) {
+        if (isForce) {
+          // Allow 'checkout -f -- <file>', but filter out the force flag
+          const filteredArgs = restArgs.filter(arg => arg !== '-f' && arg !== '--force');
+          finalArgs = ['checkout', ...filteredArgs];
         } else {
-          // This is a branch/commit checkout, disallow force
-          if (isForce) {
-            console.error("git checkout -f/--force to switch branches is not allowed.");
-            process.exit(1);
-          }
-          finalArgs = ['checkout', ...restArgs];
-        }
-        break;
-      }
-      case 'clean':
-        if (restArgs.includes('-fd')) {
-          console.error("git clean -fd is not allowed.");
+          // Disallow 'checkout -- <file>' without force
+          console.error("git checkout -- <file> is not allowed.");
           process.exit(1);
         }
-        finalArgs = ['clean', ...restArgs];
-        break;
-      case 'reset':
-        console.error("git reset is not allowed.");
-        process.exit(1);
-        break;
-      case 'restore':
-        console.error("git restore is not allowed.");
-        process.exit(1);
-        break;
-      case 'rebase':
-        console.error("git rebase is not allowed.");
-        process.exit(1);
-        break;
-      case 'push':
-        if (restArgs.includes('--force') || restArgs.includes('--force-with-lease')) {
-          console.error("git push --force or --force-with-lease is not allowed.");
+      } else {
+        // This is a branch/commit checkout, disallow force
+        if (isForce) {
+          console.error("git checkout -f/--force to switch branches is not allowed.");
           process.exit(1);
         }
-        finalArgs = ['push', ...restArgs];
-        break;
-      case 'cherry-pick': {
-        const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
-        finalArgs = ['cherry-pick', '--no-edit', ...filteredRestArgs];
-        break;
+        finalArgs = ['checkout', ...restArgs];
       }
-      case 'clone':
-        finalArgs = ['clone', ...restArgs];
-        break;
-      case 'init':
-        finalArgs = ['init', ...restArgs];
-        break;
-      case 'filter-repo':
-      case 'filter-branch':
-        console.error(`git ${subcommand} is not allowed.`);
-        process.exit(1);
-        break;
-      default:
-        // Default case: Pass through unrecognized commands directly
-        finalArgs = [subcommand, ...restArgs];
-        break;
+      break;
     }
+    case 'clean':
+      if (restArgs.includes('-fd')) {
+        console.error("git clean -fd is not allowed.");
+        process.exit(1);
+      }
+      finalArgs = ['clean', ...restArgs];
+      break;
+    case 'reset':
+      console.error("git reset is not allowed.");
+      process.exit(1);
+      break;
+    case 'restore':
+      console.error("git restore is not allowed.");
+      process.exit(1);
+      break;
+    case 'rebase':
+      console.error("git rebase is not allowed.");
+      process.exit(1);
+      break;
+    case 'push':
+      if (restArgs.includes('--force') || restArgs.includes('--force-with-lease')) {
+        console.error("git push --force or --force-with-lease is not allowed.");
+        process.exit(1);
+      }
+      finalArgs = ['push', ...restArgs];
+      break;
+    case 'cherry-pick': {
+      const filteredRestArgs = restArgs.filter(arg => arg !== '--edit');
+      finalArgs = ['cherry-pick', '--no-edit', ...filteredRestArgs];
+      break;
+    }
+    case 'clone':
+      finalArgs = ['clone', ...restArgs];
+      break;
+    case 'init':
+      finalArgs = ['init', ...restArgs];
+      break;
+    case 'filter-repo':
+    case 'filter-branch':
+      console.error(`git ${subcommand} is not allowed.`);
+      process.exit(1);
+      break;
+    default:
+      // Default case: Pass through unrecognized commands directly
+      finalArgs = [subcommand, ...restArgs];
+      break;
+  }
 
     return { command: GIT_BIN, args: finalArgs, env };
 }
