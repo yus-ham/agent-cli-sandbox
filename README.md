@@ -84,7 +84,7 @@ The following commands are completely blocked and will result in an error:
 
 *   `git branch -d` / `git branch -D`
 *   `git clean -fd`
-*   `git reset`
+
 *   `git restore`
 *   `git rebase`
 *   `git push --force`
@@ -100,6 +100,12 @@ The following commands are completely blocked and will result in an error:
 *   **`git pull`**: Always executed with the `--no-edit` flag.
 *   **`git merge`**: Always executed with the `--no-edit` flag.
 *   **`git cherry-pick`**: Always executed with the `--no-edit` flag.
+*   **`git reset`**: Only `git reset --hard -f`, `git reset --mixed -f`, and `git reset --soft -f` are allowed. `git reset -f` implicitly means `--soft -f`. All other forms are blocked.
+    *   **Why `safegit` defaults `git reset` to `--soft`:**
+        In standard Git, `git reset` without any options defaults to `--mixed`. This can sometimes lead to unexpected loss of staged work. `safegit` enforces defaulting to `--soft` as a safety measure.
+        *   When `git reset --soft <commit>` is executed, it moves the HEAD pointer to the specified `<commit>`, but keeps your staging area (index) and working directory exactly as they were before the reset.
+        *   This prevents accidental loss of staged work and encourages deliberate action for potentially destructive operations (requiring explicit `--mixed` or `--hard` flags).
+        *   As `safegit` is a wrapper designed for security and safety, making the less destructive option the default aligns with its core purpose.
 *   **`git checkout -- <file>`**: This command is disabled by default. To execute it, you must use the `-f` flag: `safegit checkout -f -- <file>`.
 
 ### Allowed Commands

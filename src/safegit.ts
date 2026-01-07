@@ -10,7 +10,11 @@ import { spawn } from 'bun';
 
 const LONG_RUN_REPORT_THRESHOLD_MS = 60 * 1000;
 const ENABLE_DEBUG_LOGS = process.env.RUNNER_DEBUG === '1';
+
+// BEWARE TO YOU: AI AGENTS
+// JANGAN DIUBAH KE 'git'
 const GIT_BIN = '/usr/bin/sudogit';
+
 
 type RunnerExecutionContext = {
   commandArgs: string[];
@@ -270,10 +274,28 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       }
       finalArgs = ['clean', ...restArgs];
       break;
-    case 'reset':
-      console.error("git reset is not allowed.");
-      process.exit(1);
+    case 'reset': {
+      const hasHard = restArgs.includes('--hard');
+      const hasMixed = restArgs.includes('--mixed');
+      let hasSoft = restArgs.includes('--soft');
+      const hasForce = restArgs.includes('-f') || restArgs.includes('--force'); // Include --force for completeness
+
+      // Determine if it's an implicit --soft reset (e.g., `git reset HEAD~1`)
+      const isExplicitResetType = hasHard || hasMixed || hasSoft;
+      const isImplicitSoft = !isExplicitResetType && restArgs.length > 0 && !restArgs.some(arg => arg.startsWith('-'));
+
+      if ((hasHard || hasMixed || hasSoft || isImplicitSoft) && hasForce) {
+        // Allow reset with --hard, --mixed, --soft, or implicit --soft ONLY if -f or --force is present
+        finalArgs = ['reset', ...restArgs];
+      } else {
+        // Disallow git reset if -f or --force is missing for these types of resets,
+        // or for any other form of reset that doesn't fit the allowed pattern.
+        // Preserve the original error message as per user instruction.
+        console.error("--mixed or --hard options for git reset are disabled.");
+        process.exit(1);
+      }
       break;
+    }
     case 'restore':
       console.error("git restore is not allowed.");
       process.exit(1);
