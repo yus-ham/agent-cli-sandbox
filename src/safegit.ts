@@ -216,9 +216,30 @@ function buildExecutionParams(commandArgs: string[]): { command: string; args: s
         finalArgs = ['merge', '--no-edit', ...filteredRestArgs];
         break;
       }
-      case 'checkout':
-        finalArgs = ['checkout', ...restArgs];
+      case 'checkout': {
+        const isForce = restArgs.includes('-f') || restArgs.includes('--force');
+        const isFileOperation = restArgs.includes('--');
+
+        if (isFileOperation) {
+          if (isForce) {
+            // Allow 'checkout -f -- <file>', but filter out the force flag
+            const filteredArgs = restArgs.filter(arg => arg !== '-f' && arg !== '--force');
+            finalArgs = ['checkout', ...filteredArgs];
+          } else {
+            // Disallow 'checkout -- <file>' without force
+            console.error("git checkout -- <file> is not allowed.");
+            process.exit(1);
+          }
+        } else {
+          // This is a branch/commit checkout, disallow force
+          if (isForce) {
+            console.error("git checkout -f/--force to switch branches is not allowed.");
+            process.exit(1);
+          }
+          finalArgs = ['checkout', ...restArgs];
+        }
         break;
+      }
       case 'clean':
         if (restArgs.includes('-fd')) {
           console.error("git clean -fd is not allowed.");
