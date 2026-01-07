@@ -92,6 +92,23 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
       continue; // Do not add -C/path/to/dir to commandArgs
     }
 
+    // Handle --cwd or --cwd=<path> option
+    if (token === '--cwd') {
+      if (i + 1 < argv.length) {
+        targetCwd = argv[i + 1];
+        i++; // Skip the next argument as it's the path
+      } else {
+        console.error('[runner] Option --cwd requires a path.');
+        process.exit(1);
+      }
+      continue; // Do not add --cwd or its path to commandArgs
+    }
+
+    if (token.startsWith('--cwd=')) { // Handle --cwd=/path/to/dir
+      targetCwd = token.substring('--cwd='.length);
+      continue; // Do not add --cwd=/path/to/dir to commandArgs
+    }
+
     parsingOptions = false;
     commandArgs.push(token);
   }
