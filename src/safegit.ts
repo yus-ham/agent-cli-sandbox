@@ -39,7 +39,7 @@ type RunnerExecutionContext = {
 
   await runCommand(context);
 })().catch((error) => {
-  console.error('[runner] Unexpected failure:', error instanceof Error ? error.message : String(error));
+  console.error('[safegit] Unexpected failure:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
 
@@ -71,7 +71,7 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
     }
 
     if (token === '--timeout' || token.startsWith('--timeout=')) {
-      console.error('[runner] --timeout is no longer supported; rely on the automatic timeouts.');
+      console.error('[safegit] --timeout is no longer supported; rely on the automatic timeouts.');
       process.exit(1);
     }
 
@@ -81,7 +81,7 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
         targetCwd = argv[i + 1];
         i += 2; // Consume both -C and its value
       } else {
-        console.error('[runner] Option -C or --directory requires a path.');
+        console.error('[safegit] Option -C or --directory requires a path.');
         process.exit(1);
       }
       continue;
@@ -99,7 +99,7 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
         targetCwd = argv[i + 1];
         i += 2; // Consume both --cwd and its value
       } else {
-        console.error('[runner] Option --cwd requires a path.');
+        console.error('[safegit] Option --cwd requires a path.');
         process.exit(1);
       }
       continue;
@@ -150,13 +150,13 @@ async function runCommand(context: RunnerExecutionContext): Promise<void> {
 
     if (elapsedMs >= LONG_RUN_REPORT_THRESHOLD_MS) {
       console.error(
-        `[runner] Completed in ${formatDuration(elapsedMs)}. For long-running tasks, prefer tmux directly.`
+        `[safegit] Completed in ${formatDuration(elapsedMs)}. For long-running tasks, prefer tmux directly.`
       );
     }
 
     process.exit(exitCode);
   } catch (error) {
-    console.error('[runner] Failed to launch command:', error instanceof Error ? error.message : String(error));
+    console.error('[safegit] Failed to launch command:', error instanceof Error ? error.message : String(error));
     process.exit(1);
     return;
   }
@@ -341,7 +341,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
 // Shows CLI usage plus optional error messaging.
 function printUsage(message?: string) {
   if (message) {
-    console.error(`[runner] ${message}`);
+    console.error(`[safegit] ${message}`);
   }
   console.error('Usage: runner [--] <command...>');
 
