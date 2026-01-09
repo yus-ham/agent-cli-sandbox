@@ -100,7 +100,7 @@ The following commands are completely blocked and will result in an error:
 *   **`git pull`**: Always executed with the `--no-edit` flag.
 *   **`git merge`**: Always executed with the `--no-edit` flag.
 *   **`git cherry-pick`**: Always executed with the `--no-edit` flag.
-*   **`git reset`**: Only allowed with the force flag (`-f` or `--force`). Specifically, `git reset --hard -f`, `git reset --mixed -f`, `git reset --soft -f` are allowed. `git reset -f` implicitly means `--soft -f`. All other forms are blocked.
+*   **`git reset`**: Only `git reset --hard` without a force flag (`-f` or `--force`) and `git reset --mixed` without a force flag (`-f` or `--force`) are blocked. All other forms of `git reset` are allowed.
 *   **`git checkout -- <file>`**: This command is disabled by default. To execute it, you must use the `-f` flag: `safegit checkout -f -- <file>`.
 
 ### Allowed Commands
