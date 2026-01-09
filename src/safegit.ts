@@ -248,7 +248,8 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       const isFileOperation = restArgs.includes('--');
 
       if (isFileOperation) {
-        if (isForce) {
+        const isVSCodeCheckout = process.env.VSCODE_GIT_COMMAND === 'checkout';
+        if (isForce || isVSCodeCheckout) {
           // Allow 'checkout -f -- <file>', but filter out the force flag
           const filteredArgs = restArgs.filter(arg => arg !== '-f' && arg !== '--force');
           finalArgs = ['checkout', ...filteredArgs];
