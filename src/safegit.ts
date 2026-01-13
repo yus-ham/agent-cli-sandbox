@@ -235,7 +235,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
     }
     case 'branch':
       if (restArgs.includes('-d') || restArgs.includes('--delete') || restArgs.includes('-D')) {
-        console.error("git branch -d/-D is not allowed.");
+        console.error("[safegit] branch -d/-D is not allowed.");
         process.exit(1);
       }
       finalArgs = ['branch', ...restArgs];
@@ -273,13 +273,13 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
           finalArgs = ['checkout', ...filteredArgs];
         } else {
           // Disallow 'checkout -- <file>' without force
-          console.error("git checkout <file> (file wipe) is not allowed.");
+          console.error("[safegit] checkout <file> (file wipe) is not allowed.");
           process.exit(1);
         }
       } else {
         // This is a branch/commit checkout, disallow force
         if (isForce) {
-          console.error("git checkout -f/--force to switch branches is not allowed.");
+          console.error("[safegit] checkout -f/--force to switch branches is not allowed.");
           process.exit(1);
         }
         finalArgs = ['checkout', ...restArgs];
@@ -288,7 +288,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
     }
     case 'clean':
       if (restArgs.includes('-fd')) {
-        console.error("git clean -fd is not allowed.");
+        console.error("[safegit] clean -fd is not allowed.");
         process.exit(1);
       }
       finalArgs = ['clean', ...restArgs];
@@ -302,17 +302,17 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       // Policy: Block only 'git reset --hard' without a force flag AND 'git reset --mixed' without a force flag.
       // All other 'git reset' commands are allowed by safegit.
       if (hasHard && !hasForce) {
-        console.error("--mixed or --hard options for git reset are disabled.");
+        console.error("[safegit] --mixed or --hard options for reset are disabled.");
         process.exit(1);
       }
       if (hasMixed && !hasForce) {
-        console.error("--mixed or --hard options for git reset are disabled.");
+        console.error("[safegit] --mixed or --hard options for reset are disabled.");
         process.exit(1);
       }
 
       // If no reset mode is specified, default to --soft
       if (!hasHard && !hasMixed && !hasSoft) {
-        console.error("reset without option is forced to use --soft");
+        console.error("[safegit] reset without option is forced to use --soft");
         finalArgs = ['reset', '--soft', ...restArgs];
       } else {
         finalArgs = ['reset', ...restArgs];
@@ -320,16 +320,16 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       break;
     }
     case 'restore':
-      console.error("git restore is not allowed.");
+      console.error("[safegit] restore is not allowed.");
       process.exit(1);
       break;
     case 'rebase':
-      console.error("git rebase is not allowed.");
+      console.error("[safegit] rebase is not allowed.");
       process.exit(1);
       break;
     case 'push':
       if (restArgs.includes('--force') || restArgs.includes('--force-with-lease')) {
-        console.error("git push --force or --force-with-lease is not allowed.");
+        console.error("[safegit] push --force or --force-with-lease is not allowed.");
         process.exit(1);
       }
       finalArgs = ['push', ...restArgs];
@@ -347,7 +347,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       break;
     case 'filter-repo':
     case 'filter-branch':
-      console.error(`git ${subcommand} is not allowed.`);
+      console.error(`[safegit] ${subcommand} is not allowed.`);
       process.exit(1);
       break;
     default:
