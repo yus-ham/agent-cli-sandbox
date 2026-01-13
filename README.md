@@ -92,7 +92,7 @@ The following commands are completely blocked and will result in an error:
 *   `git filter-repo`
 *   `git filter-branch`
 *   `git checkout -f <branch>` / `git checkout --force <branch>`
-*   `git checkout -- <file>` (without the `-f` flag)
+*   `git checkout <file>` / `git checkout -- <file>` (without the `-f` flag, when the file exists)
 
 ### Modified Commands
 
@@ -100,8 +100,10 @@ The following commands are completely blocked and will result in an error:
 *   **`git pull`**: Always executed with the `--no-edit` flag.
 *   **`git merge`**: Always executed with the `--no-edit` flag.
 *   **`git cherry-pick`**: Always executed with the `--no-edit` flag.
-*   **`git reset`**: Only `git reset --hard` without a force flag (`-f` or `--force`) and `git reset --mixed` without a force flag (`-f` or `--force`) are blocked. All other forms of `git reset` are allowed.
-*   **`git checkout -- <file>`**: This command is disabled by default. To execute it, you must use the `-f` flag: `safegit checkout -f -- <file>`.
+*   **`git reset`**: 
+    *   Only `git reset --hard` without a force flag (`-f` or `--force`) and `git reset --mixed` without a force flag (`-f` or `--force`) are blocked.
+    *   If no reset mode (like `--hard`, `--mixed`, or `--soft`) is provided, `safegit` will force the use of `--soft` and display a warning message.
+*   **`git checkout <file>`**: This command is disabled by default to prevent accidental file reverts. To execute it, you must use the `-f` flag: `safegit checkout -f <file>`.
 
 ### Allowed Commands
 
