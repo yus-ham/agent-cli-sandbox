@@ -296,6 +296,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
     case 'reset': {
       const hasHard = restArgs.includes('--hard');
       const hasMixed = restArgs.includes('--mixed');
+      const hasSoft = restArgs.includes('--soft');
       const hasForce = restArgs.includes('-f') || restArgs.includes('--force');
 
       // Policy: Block only 'git reset --hard' without a force flag AND 'git reset --mixed' without a force flag.
@@ -308,8 +309,14 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
         console.error("--mixed or --hard options for git reset are disabled.");
         process.exit(1);
       }
-      // If we reach here, the command is allowed by safegit.
-      finalArgs = ['reset', ...restArgs];
+
+      // If no reset mode is specified, default to --soft
+      if (!hasHard && !hasMixed && !hasSoft) {
+        console.error("reset without option is forced to use --soft");
+        finalArgs = ['reset', '--soft', ...restArgs];
+      } else {
+        finalArgs = ['reset', ...restArgs];
+      }
       break;
     }
     case 'restore':
