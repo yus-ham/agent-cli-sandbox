@@ -6,6 +6,8 @@
 
 
 import process from 'node:process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { spawn } from 'bun';
 
 const LONG_RUN_REPORT_THRESHOLD_MS = 60 * 1000;
@@ -245,7 +247,23 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
     }
     case 'checkout': {
       const isForce = restArgs.includes('-f') || restArgs.includes('--force');
-      const isFileOperation = restArgs.includes('--');
+      let isFileOperation = restArgs.includes('--');
+
+      if (!isFileOperation) {
+        const cwd = context.targetCwd || context.originalCwd;
+        for (const arg of restArgs) {
+          if (arg.startsWith('-')) continue;
+          try {
+            const p = path.resolve(cwd, arg);
+            if (fs.existsSync(p)) {
+              isFileOperation = true;
+              break;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
 
       if (isFileOperation) {
         const isVSCodeCheckout = process.env.VSCODE_GIT_COMMAND === 'checkout';
@@ -255,7 +273,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
           finalArgs = ['checkout', ...filteredArgs];
         } else {
           // Disallow 'checkout -- <file>' without force
-          console.error("git checkout -- <file> is not allowed.");
+          console.error("git checkout <file> (file wipe) is not allowed.");
           process.exit(1);
         }
       } else {
