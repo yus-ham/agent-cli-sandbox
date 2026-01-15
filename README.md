@@ -102,7 +102,7 @@ The following commands are completely blocked and will result in an error:
 *   **`git cherry-pick`**: Always executed with the `--no-edit` flag.
 *   **`git reset`**: 
     *   Only `git reset --hard` without a force flag (`-f` or `--force`) and `git reset --mixed` without a force flag (`-f` or `--force`) are blocked.
-    *   If no reset mode (like `--hard`, `--mixed`, or `--soft`) is provided, `safegit` will force the use of `--soft` and display a warning message.
+    *   If no reset mode (like `--hard`, `--mixed`, or `--soft`) is provided, `safegit` will force the use of `--soft` and display a warning message. Exception: `git reset -- <path>` (for unstaging files) is allowed without modification.
 *   **`git checkout <file>`**: This command is disabled by default to prevent accidental file reverts. To execute it, you must use the `-f` flag: `safegit checkout -f <file>`.
 
 ### Allowed Commands

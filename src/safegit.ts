@@ -310,8 +310,9 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
         process.exit(1);
       }
 
-      // If no reset mode is specified, default to --soft
-      if (!hasHard && !hasMixed && !hasSoft) {
+      const hasPathSeparator = restArgs.includes('--');
+
+      if (!hasHard && !hasMixed && !hasSoft && !hasPathSeparator) {
         console.error("[safegit] reset without option is forced to use --soft");
         finalArgs = ['reset', '--soft', ...restArgs];
       } else {
