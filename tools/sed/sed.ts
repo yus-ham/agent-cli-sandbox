@@ -39,7 +39,12 @@ async function main() {
     const newContent = content.replace(pattern, replacement);
 
     if (inplace) {
-        await Bun.write(file, newContent);
+        if (content !== newContent) {
+            console.info(`[sed] Modifying file: ${file}`);
+            await Bun.write(file, newContent);
+        } else {
+            console.info(`[sed] No matches in: ${file}`);
+        }
     } else {
         process.stdout.write(newContent);
     }
