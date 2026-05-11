@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 import { Bun } from "bun";
+import { createReadStream, createWriteStream } from "fs";
+import { createInterface } from "readline";
 
 async function main() {
     const args = Bun.argv.slice(2);
     
-    // Simple parsing for: sed -i 's/pattern/replacement/g' file
-    // Note: This implementation is simplified for basic search/replace
     let expression = "";
     let file = "";
     let inplace = false;
@@ -25,7 +25,6 @@ async function main() {
         process.exit(1);
     }
 
-    // Parse 's/pattern/replacement/g'
     const match = expression.match(/^'s\/(.*)\/(.*)\/g'$/);
     if (!match) {
         console.error("Invalid expression format. Use 's/pattern/replacement/g'");
@@ -35,18 +34,37 @@ async function main() {
     const pattern = new RegExp(match[1], 'g');
     const replacement = match[2];
 
-    const content = await Bun.file(file).text();
-    const newContent = content.replace(pattern, replacement);
+    const tempFile = `${file}.tmp`;
+    const rl = createInterface({
+        input: createReadStream(file),
+        crlfDelay: Infinity
+    });
+
+    const writeStream = createWriteStream(tempFile);
+    let modified = false;
+
+    for await (const line of rl) {
+        const newLine = line.replace(pattern, replacement);
+        if (newLine !== line) modified = true;
+        writeStream.write(newLine + "\n");
+    }
+
+    writeStream.end();
 
     if (inplace) {
-        if (content !== newContent) {
+        if (modified) {
             console.info(`[sed] Modifying file: ${file}`);
-            await Bun.write(file, newContent);
+            await Bun.file(tempFile).arrayBuffer().then(b => Bun.write(file, b));
+            await Bun.file(tempFile).delete();
         } else {
             console.info(`[sed] No matches in: ${file}`);
+            await Bun.file(tempFile).delete();
         }
     } else {
-        process.stdout.write(newContent);
+        // Jika tidak -i, print temp file lalu hapus
+        const output = await Bun.file(tempFile).text();
+        process.stdout.write(output);
+        await Bun.file(tempFile).delete();
     }
 }
 
