@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/sed",
+  "version": "1.0.0",
+  "main": "sed.ts",
+  "bin": {
+    "sed": "sed.ts"
+  }
+}
