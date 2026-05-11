@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/xargs",
+  "version": "1.0.0",
+  "main": "xargs.ts",
+  "bin": {
+    "xargs": "xargs.ts"
+  }
+}
