@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/at",
+  "version": "1.0.0",
+  "main": "at.ts",
+  "bin": {
+    "at": "at.ts"
+  }
+}

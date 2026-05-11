@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/lnwd",
+  "version": "1.0.0",
+  "main": "lnwd.ts",
+  "bin": {
+    "lnwd": "lnwd.ts"
+  }
+}
