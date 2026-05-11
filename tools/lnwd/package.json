@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "lnwd.ts",
   "bin": {
-    "lnwd": "lnwd.ts"
+    "lnwd": "lnwd.ts",
+    "lwd": "lnwd.ts"
   }
 }
