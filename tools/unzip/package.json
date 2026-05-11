@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/unzip",
+  "version": "1.0.0",
+  "main": "unzip.ts",
+  "bin": {
+    "unzip": "unzip.ts"
+  }
+}
