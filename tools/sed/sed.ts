@@ -3,6 +3,10 @@ import { Bun } from "bun";
 import { createReadStream, createWriteStream } from "fs";
 import { createInterface } from "readline";
 
+const RED = "\x1b[31m";
+const GREEN = "\x1b[32m";
+const RESET = "\x1b[0m";
+
 async function main() {
     const args = Bun.argv.slice(2);
     
@@ -42,10 +46,19 @@ async function main() {
 
     const writeStream = createWriteStream(tempFile);
     let modified = false;
+    let lineNum = 0;
+
+    console.info(`[sed] Processing: ${file}`);
 
     for await (const line of rl) {
+        lineNum++;
         const newLine = line.replace(pattern, replacement);
-        if (newLine !== line) modified = true;
+        
+        if (newLine !== line) {
+            modified = true;
+            console.info(`${lineNum.toString().padStart(5)}: ${RED}- ${line}${RESET}`);
+            console.info(`${lineNum.toString().padStart(5)}: ${GREEN}+ ${newLine}${RESET}`);
+        }
         writeStream.write(newLine + "\n");
     }
 
@@ -53,7 +66,6 @@ async function main() {
 
     if (inplace) {
         if (modified) {
-            console.info(`[sed] Modifying file: ${file}`);
             await Bun.file(tempFile).arrayBuffer().then(b => Bun.write(file, b));
             await Bun.file(tempFile).delete();
         } else {
@@ -61,7 +73,6 @@ async function main() {
             await Bun.file(tempFile).delete();
         }
     } else {
-        // Jika tidak -i, print temp file lalu hapus
         const output = await Bun.file(tempFile).text();
         process.stdout.write(output);
         await Bun.file(tempFile).delete();
