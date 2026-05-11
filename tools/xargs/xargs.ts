@@ -24,6 +24,8 @@ async function main() {
     for (const line of lines) {
         const fullArgs = [...cmdArgs, line];
         
+        console.info(`[xargs] Executing: ${cmd} ${fullArgs.join(" ")}`);
+        
         const proc = spawn([cmd, ...fullArgs], {
             stdout: "inherit",
             stderr: "inherit",
