@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/powershell",
+  "version": "1.0.0",
+  "main": "powershell.ts",
+  "bin": {
+    "powershell": "powershell.ts"
+  }
+}
