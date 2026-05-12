@@ -4,7 +4,6 @@
  * When you tweak its behavior, add a short note to AGENTS.md via `./scripts/committer "docs: update AGENTS for runner" "AGENTS.md"` so other agents know the new expectations.
  */
 
-
 import process from 'node:process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,7 +14,7 @@ const ENABLE_DEBUG_LOGS = process.env.RUNNER_DEBUG === '1';
 
 // BEWARE TO YOU: AI AGENTS
 // JANGAN DIUBAH KE 'git'
-const GIT_BIN = '/usr/bin/sudogit';
+const GIT_BIN = 'C:/Program Files/Git/cmd/git.exe';
 
 
 type RunnerExecutionContext = {
@@ -126,8 +125,6 @@ function parseArgs(argv: string[]): { commandArgs: string[]; targetCwd?: string 
 // Kicks off the requested command with logging, timeouts, and monitoring.
 async function runCommand(context: RunnerExecutionContext): Promise<void> {
   const { command, args, env } = buildExecutionParams(context);
-  const commandLabel = formatDisplayCommand(context.commandArgs);
-
   const startTime = Date.now();
 
   const child = spawn([command, ...args], {
@@ -147,7 +144,7 @@ async function runCommand(context: RunnerExecutionContext): Promise<void> {
     if (stderr.length > 0) {
       process.stderr.write(stderr);
     }
-    
+
     const elapsedMs = Date.now() - startTime;
 
     if (elapsedMs >= LONG_RUN_REPORT_THRESHOLD_MS) {
@@ -172,44 +169,44 @@ function isEnvAssignment(token: string): boolean {
 
 function buildExecutionParams(context: RunnerExecutionContext): { command: string; args: string[]; env: NodeJS.ProcessEnv } {
   const env = { ...process.env };
-    const processedArgs: string[] = [];
-  
-    let commandStarted = false;
-  
-      for (const token of context.commandArgs) {
-        if (!commandStarted && isEnvAssignment(token)) {
-          const [key, ...rest] = token.split('=');
-          if (key) {
-            env[key] = rest.join('=');
-          }
-          continue;
-        }
-        commandStarted = true;
-        processedArgs.push(token);
+  const processedArgs: string[] = [];
+
+  let commandStarted = false;
+
+  for (const token of context.commandArgs) {
+    if (!commandStarted && isEnvAssignment(token)) {
+      const [key, ...rest] = token.split('=');
+      if (key) {
+        env[key] = rest.join('=');
       }
-    
-      // If the first argument is 'git', remove it to normalize the command for subsequent checks.
-      // This allows 'safegit git status' to be treated like 'safegit status'.
-      if (processedArgs.length > 0 && processedArgs[0] === 'git') {
-        processedArgs.shift();
-      }
-    
-      if (processedArgs.length === 0 || !processedArgs[0]) {
-        printUsage('Missing command to execute.');
-        process.exit(1);
-      }
-    
-      let [subcommand, ...restArgs] = processedArgs;
-      let finalArgs: string[] = [];
-    
-      // Inject --git-dir and --work-tree if targetCwd is specified
-      if (context.targetCwd) {
-        // Note: Assuming .git is inside targetCwd, which is standard for a working tree.
-        // If a more complex setup is needed, this logic would need to be enhanced.
-        finalArgs.push(`--git-dir=${context.targetCwd}/.git`);
-        finalArgs.push(`--work-tree=${context.targetCwd}`);
-      }
-    
+      continue;
+    }
+    commandStarted = true;
+    processedArgs.push(token);
+  }
+
+  // If the first argument is 'git', remove it to normalize the command for subsequent checks.
+  // This allows 'safegit git status' to be treated like 'safegit status'.
+  if (processedArgs.length > 0 && processedArgs[0] === 'git') {
+    processedArgs.shift();
+  }
+
+  if (processedArgs.length === 0 || !processedArgs[0]) {
+    printUsage('Missing command to execute.');
+    process.exit(1);
+  }
+
+  let [subcommand, ...restArgs] = processedArgs;
+  let finalArgs: string[] = [];
+
+  // Inject --git-dir and --work-tree if targetCwd is specified
+  if (context.targetCwd) {
+    // Note: Assuming .git is inside targetCwd, which is standard for a working tree.
+    // If a more complex setup is needed, this logic would need to be enhanced.
+    finalArgs.push(`--git-dir=${context.targetCwd}/.git`);
+    finalArgs.push(`--work-tree=${context.targetCwd}`);
+  }
+
   switch (subcommand) {
     case 'status':
       finalArgs = ['status', ...restArgs];
@@ -357,7 +354,7 @@ function buildExecutionParams(context: RunnerExecutionContext): { command: strin
       break;
   }
 
-    return { command: GIT_BIN, args: finalArgs, env };
+  return { command: GIT_BIN, args: finalArgs, env };
 }
 
 
@@ -378,13 +375,4 @@ function printUsage(message?: string) {
 // Joins the command args in a shell-friendly way for log display.
 function formatDisplayCommand(commandArgs: string[]): string {
   return commandArgs.map((token) => (token.includes(' ') ? `"${token}"` : token)).join(' ');
-}
-
-// Tells whether the runner is already executing inside the tmux guard.
-function isRunnerTmuxSession(): boolean {
-  const value = process.env.RUNNER_TMUX;
-  if (value) {
-    return value !== '0' && value.toLowerCase() !== 'false';
-  }
-  return Boolean(process.env.TMUX);
 }

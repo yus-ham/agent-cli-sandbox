@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/grep",
+  "version": "1.0.0",
+  "main": "grep.ts",
+  "bin": {
+    "grep": "grep.ts"
+  }
+}

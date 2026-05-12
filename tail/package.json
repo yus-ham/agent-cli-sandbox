@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/tail",
+  "version": "1.0.0",
+  "main": "tail.ts",
+  "bin": {
+    "tail": "tail.ts"
+  }
+}

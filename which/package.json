@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/which",
+  "version": "1.0.0",
+  "main": "which.ts",
+  "bin": {
+    "which": "which.ts"
+  }
+}

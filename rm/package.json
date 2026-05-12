@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/rm",
+  "version": "1.0.0",
+  "main": "rm.ts",
+  "bin": {
+    "rm": "rm.ts"
+  }
+}

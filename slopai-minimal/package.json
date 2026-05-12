@@ -1,0 +1,11 @@
+{
+  "name": "minimal-slopai",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "minimal-slopai": "server.ts"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

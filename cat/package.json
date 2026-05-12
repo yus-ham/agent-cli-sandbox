@@ -1,0 +1,12 @@
+{
+  "name": "@safegit/cat",
+  "version": "1.0.0",
+  "description": "A Unix-like cat tool with line numbering support",
+  "main": "cat.ts",
+  "bin": {
+    "cat": "cat.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}

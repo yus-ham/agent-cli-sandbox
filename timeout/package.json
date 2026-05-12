@@ -1,0 +1,9 @@
+{
+  "name": "@safegit/timeout",
+  "version": "1.0.0",
+  "main": "timeout.ts",
+  "bin": {
+    "timeout": "timeout.ts",
+    "rwt": "timeout.ts"
+  }
+}

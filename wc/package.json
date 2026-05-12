@@ -1,0 +1,8 @@
+{
+  "name": "@safegit/wc",
+  "version": "1.0.0",
+  "main": "wc.ts",
+  "bin": {
+    "wc": "wc.ts"
+  }
+}
